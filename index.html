@@ -969,6 +969,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const si = document.getElementById('super-input');
   if (si) si.addEventListener('keydown', e => { if (e.key==='Enter') superAdd(); });
 });
+
+// ── EXPONER FUNCIONES AL HTML ──────────────────────────
+window.showTab        = showTab;
+window.addGasto       = addGasto;
+window.delGasto       = delGasto;
+window.renderGastos   = renderGastos;
+window.saveBudget     = saveBudget;
+window.addTarjeta     = addTarjeta;
+window.delTarjeta     = delTarjeta;
+window.actualizarSaldo= actualizarSaldo;
+window.abrirModalPago = abrirModalPago;
+window.cerrarModal    = cerrarModal;
+window.confirmarPago  = confirmarPago;
+window.verHistorial   = verHistorial;
+window.delPago        = delPago;
+window.selectColor    = selectColor;
+window.superAdd       = superAdd;
+window.superToggle    = superToggle;
+window.superDel       = superDel;
+window.superFilter    = superFilter;
+window.superClearAll  = superClearAll;
+window.exportExcel    = exportExcel;
 </script>
 </body>
 </html>
