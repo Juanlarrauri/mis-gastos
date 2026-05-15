@@ -145,7 +145,8 @@
   .filter-row select { font-size: 13px; padding: 6px 10px; }
 
   /* TOP BAR (mobile) */
-  .top-bar { display: none; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 1rem; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; }
+  .top-bar { display: none; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 1rem; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; transition: transform 0.3s ease; }
+  .top-bar.hidden { transform: translateY(-100%); }
   .top-bar-title { font-size: 16px; font-weight: 600; }
   .hamburger { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text); padding: 4px; }
 
@@ -287,7 +288,7 @@
   </nav>
 
   <!-- MOBILE TOP BAR -->
-  <div class="top-bar">
+  <div class="top-bar" id="top-bar">
     <span class="top-bar-title">MisGastos</span>
     <button onclick="exportExcel()" title="Exportar a Excel" style="background:var(--green-l);border:1px solid var(--green-d);color:var(--green-d);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;font-family:inherit;display:flex;align-items:center;gap:4px;font-weight:600;">⬇ Excel</button>
   </div>
@@ -1155,6 +1156,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const si = document.getElementById('super-input');
   if (si) si.addEventListener('keydown', e => { if (e.key==='Enter') superAdd(); });
+
+  // Ocultar barra superior al hacer scroll en móvil
+  let lastScroll = 0;
+  window.addEventListener('scroll', () => {
+    const topBar = document.getElementById('top-bar');
+    if (!topBar) return;
+    const current = window.scrollY;
+    if (current > lastScroll && current > 50) {
+      topBar.classList.add('hidden');
+    } else {
+      topBar.classList.remove('hidden');
+    }
+    lastScroll = current;
+  }, { passive: true });
 });
 
 // ── EXPONER FUNCIONES AL HTML ──────────────────────────
