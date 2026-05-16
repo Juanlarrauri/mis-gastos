@@ -340,7 +340,19 @@
           </div>
           <div class="form-group"><label>Fecha</label><input type="date" id="g-fecha"></div>
           <div class="form-group"><label>Registrado por</label>
-            <select id="g-autor"><option>Persona 1</option><option>Persona 2</option></select>
+            <select id="g-autor"><option>JuanMa</option><option>Elisa</option></select>
+          </div>
+          <div class="form-group"><label>Método de pago</label>
+            <select id="g-metodo" onchange="toggleTarjetaSelector()">
+              <option value="efectivo">💵 Efectivo / débito</option>
+              <option value="tarjeta">💳 Tarjeta de crédito</option>
+            </select>
+          </div>
+          <div class="form-group" id="g-tarjeta-group" style="display:none;">
+            <label>¿Qué tarjeta usas?</label>
+            <select id="g-tarjeta-id">
+              <option value="">Selecciona una tarjeta...</option>
+            </select>
           </div>
           <div class="form-group"><label>Nota (opcional)</label><input type="text" id="g-nota" placeholder="Detalles extra..."></div>
         </div>
@@ -357,7 +369,7 @@
               <option value="Tarjeta">Pago tarjeta</option><option>Otro</option>
             </select>
             <select id="f-autor" onchange="renderGastos()" style="font-size:12px;padding:5px 8px;">
-              <option value="">Todos</option><option>Persona 1</option><option>Persona 2</option>
+              <option value="">Todos</option><option>JuanMa</option><option>Elisa</option>
             </select>
             <select id="f-mes" onchange="renderGastos()" style="font-size:12px;padding:5px 8px;">
               <option value="">Este mes</option><option value="all">Todos</option>
@@ -602,15 +614,15 @@ function renderDashboard() {
   const mg    = getThisMonthGastos();
   const total = mg.reduce((s,g)=>s+g.monto,0);
   const bud   = Object.values(budget).reduce((s,v)=>s+Number(v||0),0);
-  const p1    = mg.filter(g=>(g.autor||'Persona 1')==='Persona 1').reduce((s,g)=>s+g.monto,0);
-  const p2    = mg.filter(g=>g.autor==='Persona 2').reduce((s,g)=>s+g.monto,0);
+  const p1    = mg.filter(g=>(g.autor||'JuanMa')==='JuanMa').reduce((s,g)=>s+g.monto,0);
+  const p2    = mg.filter(g=>g.autor==='Elisa').reduce((s,g)=>s+g.monto,0);
   const disp  = bud - total;
   document.getElementById('dash-metrics').innerHTML = `
     <div class="metric"><div class="metric-label">Gastado</div><div class="metric-value">${fmt(total)}</div></div>
     <div class="metric"><div class="metric-label">Presupuesto</div><div class="metric-value">${fmt(bud)}</div></div>
     <div class="metric"><div class="metric-label">Disponible</div><div class="metric-value ${disp>=0?'green':'red'}">${fmt(Math.abs(disp))}${disp<0?' ↑':''}</div></div>
-    <div class="metric"><div class="metric-label">Persona 1</div><div class="metric-value">${fmt(p1)}</div></div>
-    <div class="metric"><div class="metric-label">Persona 2</div><div class="metric-value">${fmt(p2)}</div></div>
+    <div class="metric"><div class="metric-label">JuanMa</div><div class="metric-value">${fmt(p1)}</div></div>
+    <div class="metric"><div class="metric-label">Elisa</div><div class="metric-value">${fmt(p2)}</div></div>
   `;
 
   const byCat={};
@@ -643,13 +655,17 @@ function renderDashboard() {
 
 // ── EXPENSE ITEM ───────────────────────────────────────
 function expenseHtml(g) {
-  const isP2 = g.autor==='Persona 2';
+  const isP2 = g.autor==='Elisa';
+  const metodoTag = g.metodo==='tarjeta' && g.tarjetaNombre
+    ? `<span style="display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600;background:var(--purple-l);color:var(--purple-d);margin-left:4px;">💳 ${escHtml(g.tarjetaNombre)}</span>`
+    : '';
   return `<div class="expense-item">
     <div class="cat-dot" style="background:${catColors[g.cat]||'#888'}"></div>
     <div class="expense-info">
       <div class="expense-desc">${escHtml(g.desc)}
         ${g.nota?`<span style="color:var(--text3);font-size:11px;font-weight:400;"> — ${escHtml(g.nota)}</span>`:''}
-        <span class="author-badge${isP2?' p2':''}">${g.autor||'Persona 1'}</span>
+        <span class="author-badge${isP2?' p2':''}">${g.autor||'JuanMa'}</span>
+        ${metodoTag}
       </div>
       <div class="expense-meta">${g.cat} · ${g.fecha}</div>
     </div>
@@ -660,28 +676,66 @@ function expenseHtml(g) {
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ── GASTOS CRUD ────────────────────────────────────────
+function toggleTarjetaSelector() {
+  const metodo = document.getElementById('g-metodo').value;
+  const grupo  = document.getElementById('g-tarjeta-group');
+  grupo.style.display = metodo === 'tarjeta' ? 'flex' : 'none';
+  // Actualizar opciones con tarjetas disponibles
+  if (metodo === 'tarjeta') {
+    const sel = document.getElementById('g-tarjeta-id');
+    sel.innerHTML = '<option value="">Selecciona una tarjeta...</option>' +
+      tarjetas.map(t => `<option value="${t.id}">💳 ${escHtml(t.nombre)} •••• ${t.num} (Disp: ${fmt(Math.max(0,t.limite-t.saldo))})</option>`).join('');
+  }
+}
+
 function addGasto() {
-  const desc  = document.getElementById('g-desc').value.trim();
-  const monto = parseFloat(document.getElementById('g-monto').value);
+  const desc   = document.getElementById('g-desc').value.trim();
+  const monto  = parseFloat(document.getElementById('g-monto').value);
+  const metodo = document.getElementById('g-metodo').value;
+  const tarjetaId = document.getElementById('g-tarjeta-id')?.value || '';
+
   if (!desc || isNaN(monto) || monto<=0) { alert('Llena descripción y monto válido'); return; }
+
+  if (metodo === 'tarjeta') {
+    if (!tarjetaId) { alert('Selecciona qué tarjeta estás usando'); return; }
+    const t = tarjetas.find(t=>t.id===tarjetaId);
+    if (!t) { alert('Tarjeta no encontrada'); return; }
+    const disponible = Math.max(0, t.limite - t.saldo);
+    if (t.limite > 0 && monto > disponible) {
+      if (!confirm(`⚠️ Esta compra supera el disponible de ${fmt(disponible)} en ${t.nombre}. ¿Continuar de todas formas?`)) return;
+    }
+    // Descontar del saldo de la tarjeta
+    t.saldo = t.saldo + monto;
+    saveTarjetas();
+  }
+
   gastos.push({
     id: Date.now().toString(),
     desc, monto,
-    cat:   document.getElementById('g-cat').value,
-    fecha: document.getElementById('g-fecha').value || thisMonth()+'-01',
-    autor: document.getElementById('g-autor').value,
-    nota:  document.getElementById('g-nota').value.trim()
+    cat:      document.getElementById('g-cat').value,
+    fecha:    document.getElementById('g-fecha').value || thisMonth()+'-01',
+    autor:    document.getElementById('g-autor').value,
+    nota:     document.getElementById('g-nota').value.trim(),
+    metodo,
+    tarjetaId: metodo === 'tarjeta' ? tarjetaId : '',
+    tarjetaNombre: metodo === 'tarjeta' ? (tarjetas.find(t=>t.id===tarjetaId)?.nombre || '') : ''
   });
   saveGastos();
   document.getElementById('g-desc').value='';
   document.getElementById('g-monto').value='';
   document.getElementById('g-nota').value='';
-  setSyncStatus('ok','Guardado · '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
-  renderGastos();
-  if (activeTab==='dashboard') renderDashboard();
+  document.getElementById('g-metodo').value='efectivo';
+  toggleTarjetaSelector();
+  refreshUI();
 }
 function delGasto(id) {
   if (!confirm('¿Eliminar este gasto?')) return;
+  const g = gastos.find(g=>g.id===id);
+  // Restaurar saldo de tarjeta si aplica
+  if (g && g.metodo==='tarjeta' && g.tarjetaId) {
+    const t = tarjetas.find(t=>t.id===g.tarjetaId);
+    if (t) { t.saldo = Math.max(0, t.saldo - g.monto); saveTarjetas(); }
+  }
   gastos = gastos.filter(g=>g.id!==id);
   saveGastos();
   refreshUI();
@@ -692,7 +746,7 @@ function renderGastos() {
   const mes   = document.getElementById('f-mes').value;
   let list = [...gastos].reverse();
   if (cat)   list = list.filter(g=>g.cat===cat);
-  if (autor) list = list.filter(g=>(g.autor||'Persona 1')===autor);
+  if (autor) list = list.filter(g=>(g.autor||'JuanMa')===autor);
   if (!mes)  list = list.filter(g=>g.fecha&&g.fecha.startsWith(thisMonth()));
   document.getElementById('gasto-list').innerHTML = list.length
     ? list.map(expenseHtml).join('') : '<div class="empty">Sin gastos encontrados</div>';
@@ -1098,7 +1152,7 @@ function exportExcel() {
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     ['Fecha','Descripción','Categoría','Monto','Registrado por','Nota'],
-    ...gastos.map(g=>[g.fecha,g.desc,g.cat,g.monto,g.autor||'Persona 1',g.nota||''])
+    ...gastos.map(g=>[g.fecha,g.desc,g.cat,g.monto,g.autor||'JuanMa',g.nota||''])
   ]), 'Gastos');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
     ['Categoría','Presupuesto mensual'],
@@ -1173,6 +1227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── EXPONER FUNCIONES AL HTML ──────────────────────────
+window.toggleTarjetaSelector = toggleTarjetaSelector;
 window.showTab        = showTab;
 window.addGasto       = addGasto;
 window.delGasto       = delGasto;
